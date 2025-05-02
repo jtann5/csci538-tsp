@@ -27,7 +27,7 @@ class LLMSolver():
     message = self.client.beta.threads.messages.create(
         thread_id=self.thread.id,
         role="user",
-        content=text,
+        content=str(text),
     )
 
     # Create a run

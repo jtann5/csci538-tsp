@@ -1,121 +1,91 @@
 import random
-import json
+import math
+import matplotlib.pyplot as plt
 
-class TSPGraph:
-    def __init__(self):
-        self.nodes = set()
-        self.edges = {} # Dict of (node1, node2): weight
-        self.solution = [] # List of node names representing the route
+class EuclideanTSPGraph:
+    def __init__(self, name="example"):
+        self.name = name
+        self.nodes = {}  # node_id: (x, y)
+        self.dimension = 0
+        self.edge_weight_type = "EUC_2D"
+        self.solution = []
+        self.solution_cost = None
 
-    def add_edge(self, node1, node2, weight):
-        self.nodes.update([node1, node2])
-        self.edges[(node1, node2)] = weight
-        self.edges[(node2, node1)] = weight  # Undirected graph
+    def add_node(self, node_id, x, y):
+        # Check if the coordinate already exists
+        for node in self.nodes.values():
+            if node == (x, y):
+                raise ValueError(f"Node with coordinates ({x}, {y}) already exists.")
+        self.nodes[node_id] = (x, y)
+        self.dimension = len(self.nodes)
 
-    def try_generate_graph(self, num_nodes, edge_probability=0.5, max_weight=100, max_tries=100):
-        for _ in range(max_tries):
-            self.generate_random(num_nodes, edge_probability, max_weight)
-            
-            if self.is_valid_graph():
-                return True 
-            
-        return False
+    def generate_random(self, num_nodes, x_range=(0, 100), y_range=(0, 100)):
+        self.nodes = {}
+        attempts = 0
+        while len(self.nodes) < num_nodes and attempts < 1000:
+            node_id = len(self.nodes)
+            x = random.uniform(*x_range)
+            y = random.uniform(*y_range)
+            try:
+                self.add_node(node_id, x, y)
+            except ValueError:  # Skip duplicate nodes
+                attempts += 1
+                continue
+        if len(self.nodes) != num_nodes:
+            raise ValueError("Failed to generate a complete set of unique nodes after 1000 attempts.")
 
-    def generate_random(self, num_nodes, edge_probability=0.5, max_weight=100):
-        self.nodes = {i for i in range(num_nodes)}  # Nodes as strings for clarity
-        self.edges = {}
-        
-        # Generate edges based on edge_probability
-        for a in self.nodes:
-            for b in self.nodes:
-                if a != b and (a, b) not in self.edges:
-                    if random.random() < edge_probability:
-                        weight = random.randint(1, max_weight)
-                        self.add_edge(a, b, weight)
+    def distance(self, node1, node2):
+        x1, y1 = self.nodes[node1]
+        x2, y2 = self.nodes[node2]
+        return int(round(math.hypot(x1 - x2, y1 - y2)))
+
+    def to_tsp_format(self):
+        lines = [
+            f"NAME: {self.name}",
+            "TYPE: TSP",
+            f"DIMENSION: {self.dimension}",
+            f"EDGE_WEIGHT_TYPE: {self.edge_weight_type}",
+            "NODE_COORD_SECTION"
+        ]
+        for node_id in sorted(self.nodes):
+            x, y = self.nodes[node_id]
+            lines.append(f"{node_id} {x:.0f} {y:.0f}")
+        lines.append("EOF")
+        return "\n".join(lines)
+
+    def save_to_file(self, filepath):
+        with open(filepath, 'w') as f:
+            f.write(self.to_tsp_format())
 
     def load_from_file(self, filepath):
         with open(filepath, 'r') as f:
-            graph_data = json.load(f)
-            
-        self.nodes = set(graph_data["nodes"])  # Numbers as nodes
-        self.edges = {}
-        
-        for edge in graph_data["edges"]:
-            self.edges[(edge["from"], edge["to"])] = edge["weight"]
-            self.edges[(edge["to"], edge["from"])] = edge["weight"]  # Ensuring symmetry
-        
-        print(f"Graph loaded from {filepath}")
+            graph_data = f.read().splitlines()
 
-    def save_to_file(self, filepath):
-        graph_data = {
-            "nodes": list(self.nodes),  # Nodes as numbers
-            "edges": [{"from": a, "to": b, "weight": weight} for (a, b), weight in self.edges.items()]
-        }
-        
-        with open(filepath, 'w') as f:
-            json.dump(graph_data, f, indent=4)
-        print(f"Graph saved to {filepath}")
-
-    def is_valid_graph(self):
-        # Check 1: The graph must contain at least two nodes
-        if len(self.nodes) < 2:
-            return False
-
-        # Check 2: Every edge must connect valid nodes
-        for (a, b) in self.edges:
-            if a not in self.nodes or b not in self.nodes:
-                return False
-
-        # Check 3: No self-loops (edges from a node to itself)
-        for (a, b) in self.edges:
-            if a == b:
-                return False
-
-        # Check 4: Ensure all edges have valid (positive) weights
-        for (a, b), weight in self.edges.items():
-            if weight <= 0:
-                return False
-        
-        # (Optional) Check 5: Ensure the graph is connected (only for undirected graphs)
-        # This can be checked via a Depth-First Search (DFS) or Breadth-First Search (BFS).
-        # For this, you would need to traverse all nodes and see if they are all reachable.
-        if not self.is_connected():
-            return False
-        
-        return True
-    
-    def is_connected(self):
-        # Simple DFS or BFS to check if the graph is connected.
-        visited = set()
-        
-        # Start DFS from any node (we choose the first node in the set)
-        def dfs(node):
-            visited.add(node)
-            for (a, b) in self.edges:
-                if a == node and b not in visited:
-                    dfs(b)
-                elif b == node and a not in visited:
-                    dfs(a)
-        
-        # Start DFS from an arbitrary node
-        dfs(next(iter(self.nodes)))
-        
-        # If we've visited all nodes, the graph is connected
-        return visited == self.nodes
+        # Parsing the TSP file
+        node_section_started = False
+        for line in graph_data:
+            if line.startswith("NODE_COORD_SECTION"):
+                node_section_started = True
+                continue
+            if node_section_started:
+                if line.startswith("EOF"):
+                    break
+                node_data = list(map(float, line.split()))
+                self.add_node(int(node_data[0]), node_data[1], node_data[2])
 
     def set_solution(self, route):
+        if set(route) != set(self.nodes.keys()):
+            raise ValueError("Solution does not contain all nodes.")
         self.solution = route
         self.solution_cost = self.get_solution_cost() if self.is_valid_solution() else None
 
     def is_valid_solution(self):
-        if set(self.solution) != self.nodes:
-            return False
-        if len(self.solution) != len(self.nodes):
+        if len(self.solution) != self.dimension:
             return False
         for i in range(len(self.solution)):
             a = self.solution[i]
             b = self.solution[(i + 1) % len(self.solution)]  # Return to start
-            if (a, b) not in self.edges:
+            if (a, b) not in self.edges() and (b, a) not in self.edges():
                 return False
         return True
 
@@ -126,31 +96,82 @@ class TSPGraph:
         for i in range(len(self.solution)):
             a = self.solution[i]
             b = self.solution[(i + 1) % len(self.solution)]
-            total += self.edges[(a, b)]
+            total += self.distance(a, b)
         return total
-    
-    def to_json_prompt(self):
-        edges_list = []
-        seen = set()
-        for (a, b), weight in self.edges.items():
-            if (b, a) not in seen:
-                edges_list.append({"from": a, "to": b, "weight": weight})
-                seen.add((a, b))
 
-        return {
-            "nodes": sorted(self.nodes),
-            "edges": edges_list
-        }
+    def edges(self):
+        """Generate the edges (pairs of nodes) for this graph."""
+        edges = {}
+        for a in self.nodes:
+            for b in self.nodes:
+                if a != b:
+                    edges[(a, b)] = self.distance(a, b)
+        return edges
     
+    def to_distance_matrix(self):
+        """Converts the graph to a distance matrix."""
+        matrix = []
+        nodes_list = list(self.nodes.keys())
+        for i in nodes_list:
+            row = []
+            for j in nodes_list:
+                if i == j:
+                    row.append(0)
+                else:
+                    row.append(self.distance(i, j))
+            matrix.append(row)
+        return matrix
+    
+    def show(self, show_solution=True, show_all_edges=True):
+        plt.figure(figsize=(8, 6))
+        x = [coord[0] for coord in self.nodes.values()]
+        y = [coord[1] for coord in self.nodes.values()]
+        
+        # Draw nodes
+        for node_id, (xi, yi) in self.nodes.items():
+            plt.plot(xi, yi, 'bo')
+            plt.text(xi + 1, yi + 1, str(node_id), fontsize=12)
+
+        # Draw solution path if available
+        if show_solution and self.solution:
+            path = self.solution + [self.solution[0]]  # Return to start
+            for i in range(len(self.solution)):
+                a = self.nodes[path[i]]
+                b = self.nodes[path[i + 1]]
+                plt.plot([a[0], b[0]], [a[1], b[1]], 'r-')
+
+        # Draw all edges (complete graph) if requested
+        if show_all_edges:
+            for i, (id1, (x1, y1)) in enumerate(self.nodes.items()):
+                for j, (id2, (x2, y2)) in enumerate(self.nodes.items()):
+                    if id1 != id2 and id1 < id2:  # Avoid duplicate lines
+                        plt.plot([x1, x2], [y1, y2], 'gray', alpha=0.3, linewidth=0.5)
+
+        plt.title(f"TSP Graph - {self.name}")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.axis("equal")
+        plt.show()
+
     def __str__(self):
-        output = "Graph for Traveling Salesman Problem\n"
-        output += f"Nodes: {sorted(self.nodes)}\n"
-        output += "Edges:\n"
-        
-        seen = set()
-        for (a, b), weight in sorted(self.edges.items()):
-            if (b, a) not in seen:  # Avoid printing duplicate undirected edges
-                output += f"  {a} <-> {b} with weight {weight}\n"
-                seen.add((a, b))
-        
-        return output
+        return self.to_tsp_format()
+
+# Example usage
+if __name__ == "__main__":
+    graph = EuclideanTSPGraph()
+    graph.add_node(1, 10, 20)
+    graph.add_node(2, 30, 40)
+    graph.add_node(3, 50, 10)
+    graph.add_node(4, 60, 60)
+    graph.add_node(5, 70, 20)
+    print(graph)
+
+    # Example of loading a TSP file
+    # graph.load_from_file('example.tsp')
+    # print(graph)
+
+    # Example of setting and validating a solution
+    graph.set_solution([1, 2, 3, 4, 5])
+    print("Solution is valid:", graph.is_valid_solution())
+    print("Solution cost:", graph.get_solution_cost())
