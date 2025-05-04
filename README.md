@@ -3,15 +3,17 @@
 
  ## Graph Format
 ```
-{
-    "nodes": [0, 1, 2, 3],
-    "edges": [
-        {"from": 0, "to": 1, "weight": 10},
-        {"from": 0, "to": 2, "weight": 15},
-        {"from": 1, "to": 2, "weight": 20},
-        {"from": 2, "to": 3, "weight": 25}
-    ]
-}
+NAME: example
+TYPE: TSP
+DIMENSION: 5
+EDGE_WEIGHT_TYPE: EUC_2D
+NODE_COORD_SECTION
+1 10 20
+2 30 40
+3 50 10
+4 60 60
+5 70 20
+EOF
 ```
 
 ## Explantation of Files

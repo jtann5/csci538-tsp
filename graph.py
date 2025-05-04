@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 
 class EuclideanTSPGraph:
-    def __init__(self, name="example"):
+    def __init__(self, name="tsp graph"):
         self.name = name
         self.nodes = {}  # node_id: (x, y)
         self.dimension = 0
@@ -57,27 +57,66 @@ class EuclideanTSPGraph:
         with open(filepath, 'w') as f:
             f.write(self.to_tsp_format())
 
-    def load_from_file(self, filepath):
+    def load_from_file(self, filepath, check_dimension=True):
         with open(filepath, 'r') as f:
             graph_data = f.read().splitlines()
 
-        # Parsing the TSP file
         node_section_started = False
+        expected_dimension = None
+        node_lines = []
+
         for line in graph_data:
-            if line.startswith("NODE_COORD_SECTION"):
-                node_section_started = True
+            line = line.strip()
+            if not line or line.startswith("COMMENT"):
                 continue
-            if node_section_started:
-                if line.startswith("EOF"):
+
+            if line.startswith("NAME"):
+                self.name = line.split(":", 1)[1].strip()
+            elif line.startswith("TYPE"):
+                type_val = line.split(":", 1)[1].strip()
+                if type_val.upper() != "TSP":
+                    raise ValueError(f"Invalid TYPE: expected TSP, got {type_val}")
+            elif line.startswith("EDGE_WEIGHT_TYPE"):
+                weight_type = line.split(":", 1)[1].strip()
+                if weight_type.upper() != "EUC_2D":
+                    raise ValueError(f"Unsupported EDGE_WEIGHT_TYPE: expected EUC_2D, got {weight_type}")
+            elif line.startswith("DIMENSION"):
+                expected_dimension = int(line.split(":", 1)[1].strip())
+            elif line.startswith("NODE_COORD_SECTION"):
+                node_section_started = True
+            elif node_section_started:
+                if line.upper().startswith("EOF"):
                     break
-                node_data = list(map(float, line.split()))
-                self.add_node(int(node_data[0]), node_data[1], node_data[2])
+                node_lines.append(line)
+
+        self.nodes = {}
+        for line in node_lines:
+            parts = list(map(float, line.strip().split()))
+            if len(parts) != 3:
+                raise ValueError(f"Invalid node format: {line}")
+            self.add_node(int(parts[0]), parts[1], parts[2])
+
+        if check_dimension and expected_dimension is not None:
+            if len(self.nodes) != expected_dimension:
+                raise ValueError(f"Node count {len(self.nodes)} does not match DIMENSION {expected_dimension}")
+
 
     def set_solution(self, route):
         if set(route) != set(self.nodes.keys()):
             raise ValueError("Solution does not contain all nodes.")
         self.solution = route
         self.solution_cost = self.get_solution_cost() if self.is_valid_solution() else None
+
+    def set_solution_from_string(self, solution_str):
+        try:
+            # Remove brackets and whitespace, split by comma, convert to int
+            cleaned = solution_str.strip().strip("[]")
+            route = [int(x.strip()) for x in cleaned.split(",")]
+            self.set_solution(route)
+            return True
+        except Exception as e:
+            print(f"Failed to set solution: {e}")
+            return False
 
     def is_valid_solution(self):
         if len(self.solution) != self.dimension:

@@ -10,10 +10,18 @@ if __name__ == "__main__":
 
     esolver = ConcordeSolver()
 
-    graph.generate_random(20)
-    graph.save_to_file("test1.tsp")
+    #graph.generate_random(10)
+    #graph.save_to_file("test1.tsp")
+    graph.load_from_file("test1.tsp")
     print(graph)
+    #print(solver.analyze(graph))
+    graph.set_solution_from_string(solver.analyze(graph))
+    print(graph.solution)
+    print(graph.get_solution_cost())
+    graph.show()
+
     graph.set_solution(esolver.analyze(graph))
     print(graph.solution)
+    print(graph.get_solution_cost())
     graph.show()
     
