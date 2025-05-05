@@ -14,18 +14,18 @@ if __name__ == "__main__":
 
     esolver = DynamicProgrammingSolver()
 
-    graph.generate_random(10)
-    graph.save_to_file("test1.tsp")
-    #graph.load_from_file("tsp10/tsp10-1.tsp")
+    #graph.generate_random(10)
+    #graph.save_to_file("test1.tsp")
+    graph.load_from_file("tsp20/tsp20-22.tsp")
     print(graph)
     print("\n\n")
 
-    # print("LLM:")
-    # graph.set_solution_from_string(solver.analyze(graph))
-    # print(graph.solution)
-    # print(graph.get_solution_cost())
-    # graph.show()
-    # print("\n\n")
+    print("LLM:")
+    graph.set_solution(solver.analyze(graph))
+    print(graph.solution)
+    print(graph.get_solution_cost())
+    graph.show()
+    print("\n\n")
 
     # print("Nearest Neighbor:")
     # graph.set_solution(nearest.analyze(graph))

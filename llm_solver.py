@@ -30,27 +30,30 @@ class LLMSolver():
     self.thread = self.client.beta.threads.create()
 
   def analyze(self, graph: EuclideanTSPGraph):
-    max_retries = 5
+    max_retries = 10
     attempts = 0
     success = False
 
     while attempts < max_retries and not success:
       try:
         tour = self.send_request(str(graph))
-        graph.set_solution_from_string(tour)
-        # if not graph.is_valid_solution:
-        #   raise ValueError("Invalid solution.")
+        cleaned = tour.strip().strip("[]")
+        route = [int(x.strip()) for x in cleaned.split(",")]
+        graph.set_solution(route)
+        if not graph.is_valid_solution():
+          raise ValueError("Invalid solution.")
         success = True
       except ValueError as e:
         attempts += 1
         self.failed_attempts += 1
+        self.clear_thread()
         print("Failed attempt - " + tour)
     
     if not success:
-      raise ValueError("Invalid solution")
+      raise ValueError("Invalid solution.")
 
     self.clear_thread()
-    return tour
+    return route
 
   def send_request(self, text):
     # Add message to a thread

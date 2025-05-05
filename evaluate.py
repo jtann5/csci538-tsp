@@ -85,7 +85,7 @@ def collect_data(solver, data_directory_or_files, output_path, exact_values=None
             total_gap += optimality_gap if optimality_gap is not None else 0
             num_files += 1
 
-            print("Evluated: " + str([os.path.basename(filename).removesuffix(".tsp"), cost, f"{elapsed_time:.5f}", optimality_gap]))
+            print("Evaluated: " + str([os.path.basename(filename).removesuffix(".tsp"), cost, f"{elapsed_time:.5f}", optimality_gap]))
 
         mean_cost = total_cost / num_files
         mean_time = total_time / num_files
@@ -95,13 +95,62 @@ def collect_data(solver, data_directory_or_files, output_path, exact_values=None
         writer.writerow(["Mean", mean_cost, f"{mean_time:.5f}", mean_gap])
 
 
+def collect_data_no_opt(solver, data_directory_or_files, output_path):
+    if isinstance(data_directory_or_files, list):
+        files = data_directory_or_files
+    else:
+        files = [f for f in os.listdir(data_directory_or_files) if f.endswith(".tsp")]
+
+        def extract_numeric_parts(filename):
+            return [int(part) for part in re.findall(r'\d+', filename)]
+
+        files = sorted(files, key=extract_numeric_parts)
 
 
+    with open(output_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["filename", "cost", "time (s)", "optimality gap (%)"])
+        
+        total_cost = 0
+        total_time = 0
+        num_files = 0
+
+        for filename in files:
+            file_path = os.path.join(data_directory_or_files, filename) if not isinstance(data_directory_or_files, list) else filename
+            
+            graph = EuclideanTSPGraph()
+            graph.load_from_file(file_path)
+
+            start_time = time.time()
+            graph.set_solution(solver.analyze(graph))
+            end_time = time.time()
+            # for real time use time.time()
+            # for cpu time use time.process_time()
+
+            elapsed_time = end_time - start_time
+
+            cost = graph.get_solution_cost()
+
+            
+            # Write the row for this file
+            writer.writerow([os.path.basename(filename).removesuffix(".tsp"), cost, f"{elapsed_time:.5f}", "-"])
+
+            total_cost += cost
+            total_time += elapsed_time
+            num_files += 1
+
+            print("Evaluated: " + str([os.path.basename(filename).removesuffix(".tsp"), cost, f"{elapsed_time:.5f}", "-"]))
+
+        mean_cost = total_cost / num_files
+        mean_time = total_time / num_files
+        
+        # Write the mean values at the end
+        writer.writerow(["Mean", mean_cost, f"{mean_time:.5f}", "-"])
 
 if __name__ == "__main__":
-    for i in [20, 30]:
-        solver = DynamicProgrammingSolver()
-        collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+    # for i in [20]:
+        # solver = DynamicProgrammingSolver()
+        # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
 
         # solver = NearestNeighborSolver(0)
         # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/NearestNeighborSolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
@@ -114,3 +163,16 @@ if __name__ == "__main__":
 
         # solver = LLMSolver("o1")
         # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-o1-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+
+    for i in [30]:
+        solver = NearestNeighborSolver(0)
+        collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/NearestNeighborSolver-tsp"+str(i)+".csv")
+
+        solver = GreedySolver(0)
+        collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/GreedySolver-tsp"+str(i)+".csv")
+
+        # solver = LLMSolver("gpt-4o")
+        # collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-gpt-4o-tsp"+str(i)+".csv")
+
+        # solver = LLMSolver("o1")
+        # collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-o1-tsp"+str(i)+".csv")

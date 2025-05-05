@@ -12,5 +12,5 @@ class DynamicProgrammingSolver:
         # Solve the TSP using the Concorde solver through pytsp
         solution, cost = solve_tsp_dynamic_programming(distance_matrix)
         
-        # Return the solution path and cost
+        # Return the solution path
         return solution
