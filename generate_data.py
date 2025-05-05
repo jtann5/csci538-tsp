@@ -20,4 +20,6 @@ def generate_dataset(dir, base_name, nodes, num, force=False):
 
 
 if __name__ == "__main__":
-    generate_dataset("tsp5", "tsp5-", 5, 20)
+    for i in [5, 10, 20, 30]:
+        generate_dataset("tsp"+str(i), "tsp"+str(i)+"-", i, 50)
+

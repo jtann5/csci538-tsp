@@ -24,8 +24,8 @@ class EuclideanTSPGraph:
         attempts = 0
         while len(self.nodes) < num_nodes and attempts < 1000:
             node_id = len(self.nodes)
-            x = random.uniform(*x_range)
-            y = random.uniform(*y_range)
+            x = random.randint(*x_range)
+            y = random.randint(*y_range)
             try:
                 self.add_node(node_id, x, y)
             except ValueError:  # Skip duplicate nodes
@@ -102,6 +102,10 @@ class EuclideanTSPGraph:
 
 
     def set_solution(self, route):
+        if isinstance(route, str) and route.strip():
+            self.set_solution_from_string(route)
+            return
+        
         if set(route) != set(self.nodes.keys()):
             raise ValueError("Solution does not contain all nodes.")
         self.solution = route

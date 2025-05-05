@@ -1,6 +1,8 @@
 from openai import OpenAI
 import time
 
+from graph import EuclideanTSPGraph
+
 # Make sure to export environment variable OPENAI_API_KEY
 
 TSP_4o_ID = 'asst_sv7Y0koVte4odmHCmnJoKz8V'
@@ -15,6 +17,7 @@ class LLMSolver():
 
     self.client = OpenAI()
     self.thread = self.client.beta.threads.create()
+    self.failed_attempts = 0
 
   def set_assistant(self, model):
     if model == "gpt-4o":
@@ -22,12 +25,39 @@ class LLMSolver():
     elif model == "o1":
       self.ASSISTANT_ID = TSP_o1_ID
 
-  def analyze(self, text):
+  def clear_thread(self):
+    # Creates a new thread to clear the context.
+    self.thread = self.client.beta.threads.create()
+
+  def analyze(self, graph: EuclideanTSPGraph):
+    max_retries = 5
+    attempts = 0
+    success = False
+
+    while attempts < max_retries and not success:
+      try:
+        tour = self.send_request(str(graph))
+        graph.set_solution_from_string(tour)
+        # if not graph.is_valid_solution:
+        #   raise ValueError("Invalid solution.")
+        success = True
+      except ValueError as e:
+        attempts += 1
+        self.failed_attempts += 1
+        print("Failed attempt - " + tour)
+    
+    if not success:
+      raise ValueError("Invalid solution")
+
+    self.clear_thread()
+    return tour
+
+  def send_request(self, text):
     # Add message to a thread
     message = self.client.beta.threads.messages.create(
         thread_id=self.thread.id,
         role="user",
-        content=str(text),
+        content=text,
     )
 
     # Create a run
@@ -51,7 +81,7 @@ class LLMSolver():
       )
       messages = message_response.data
       latest_message = messages[0]
-
+      
       return latest_message.content[0].text.value
     else:
       return run.status

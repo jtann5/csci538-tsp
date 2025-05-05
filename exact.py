@@ -1,7 +1,7 @@
 from python_tsp.exact import solve_tsp_dynamic_programming
 import numpy as np
 
-class ConcordeSolver:
+class DynamicProgrammingSolver:
     def __init__(self):
         pass
 
