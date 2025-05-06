@@ -2,14 +2,60 @@ import os
 import re
 import csv
 import time
+import numpy as np
 
 from graph import EuclideanTSPGraph
 from llm_solver import LLMSolver
 from exact import DynamicProgrammingSolver
 from heuristic import NearestNeighborSolver, GreedySolver, RandomizedSolver
 
-def variance(llm_solver: LLMSolver, data, filepath):
-    return
+def variance(llm_solver: LLMSolver, filepath, output_path, num_tests):
+    graph = EuclideanTSPGraph()
+    graph.load_from_file(filepath)
+
+    esolver = DynamicProgrammingSolver()
+    graph.set_solution(esolver.analyze(graph))
+    optimal_cost = graph.get_solution_cost()
+
+    results = []
+
+    for i in range(num_tests):
+        graph.load_from_file(filepath)  # Reload to reset any prior solution
+
+        start_time = time.time()
+        route = llm_solver.analyze(graph)
+        end_time = time.time()
+
+        if isinstance(route, tuple):
+            route = route[0]  # Handle (tour, cost) return style
+
+        graph.set_solution(route)
+        cost = graph.get_solution_cost()
+        duration = round(end_time - start_time, 5)
+        gap = round(((cost - optimal_cost) / optimal_cost) * 100, 5)
+
+        results.append([i + 1, round(cost, 5), duration, gap])
+        print("Completed trial " + str(i+1) + " on " + os.path.basename(filepath).removesuffix(".tsp"))
+
+    # Compute stats
+    np_results = np.array(results)[:, 1:].astype(float)  # skip trial index
+    mean = np.mean(np_results, axis=0)
+    var = np.var(np_results, axis=0, ddof=1)  # sample variance
+    max_ = np.max(np_results, axis=0)
+    min_ = np.min(np_results, axis=0)
+    range_ = max_ - min_
+
+    # Write results
+    with open(output_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["trial", "cost", "time (s)", "optimality gap (%)"])
+        writer.writerows(results)
+        writer.writerow(["mean"] + list(np.round(mean, 5)))
+        writer.writerow(["variance"] + list(np.round(var, 5)))
+        writer.writerow(["max"] + list(np.round(max_, 5)))
+        writer.writerow(["min"] + list(np.round(min_, 5)))
+        writer.writerow(["range"] + list(np.round(range_, 5)))
+
 
 def load_optimal_costs(csv_path):
     optimal_map = {}  # filename (without .tsp) -> cost
@@ -148,37 +194,44 @@ def collect_data_no_opt(solver, data_directory_or_files, output_path):
         writer.writerow(["Mean", mean_cost, f"{mean_time:.5f}", "-"])
 
 if __name__ == "__main__":
+    esolver = DynamicProgrammingSolver()
+    nearest = NearestNeighborSolver(0)
+    greedy = GreedySolver(0)
+    randomized = RandomizedSolver(0)
+    llm = LLMSolver("gpt-4o")
+
+    for filepath in ["tsp5/tsp5-4.tsp", "tsp10/tsp10-39.tsp", "tsp10/tsp10-43.tsp", "tsp20/tsp20-10.tsp", "tsp20/tsp20-27.tsp"]:
+        variance(llm, filepath, "results/variance/LLMSolver-variance-"+os.path.basename(filepath).removesuffix(".tsp")+".csv", 10)
+        
     for i in [5, 10, 20]:
-        # solver = DynamicProgrammingSolver()
-        # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+        # DynamicProgrammingSolver
+        collect_data(esolver, "tsp"+str(i), "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
 
-        # solver = NearestNeighborSolver(0)
-        # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/NearestNeighborSolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+        # NearestNeighborSolver
+        collect_data(nearest, "tsp"+str(i), "results/tsp"+str(i)+"/NearestNeighborSolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
 
-        # solver = GreedySolver(0)
-        # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/GreedySolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+        # GreedySolver
+        collect_data(greedy, "tsp"+str(i), "results/tsp"+str(i)+"/GreedySolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
 
-        solver = RandomizedSolver(0)
-        collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/RandomizedSolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+        # RandomizedSolver
+        collect_data(randomized, "tsp"+str(i), "results/tsp"+str(i)+"/RandomizedSolver-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
 
-        # solver = LLMSolver("gpt-4o")
-        # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-gpt-4o-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+        # LLMSolver
+        collect_data(llm, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-gpt-4o-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
 
-        # solver = LLMSolver("o1")
-        # collect_data(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-o1-tsp"+str(i)+".csv", "results/tsp"+str(i)+"/DynamicProgrammingSolver-tsp"+str(i)+".csv")
+        # RL
 
     for i in [30]:
-        # solver = NearestNeighborSolver(0)
-        # collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/NearestNeighborSolver-tsp"+str(i)+".csv")
+        # NearestNeighborSolver
+        collect_data_no_opt(nearest, "tsp"+str(i), "results/tsp"+str(i)+"/NearestNeighborSolver-tsp"+str(i)+".csv")
 
-        # solver = GreedySolver(0)
-        # collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/GreedySolver-tsp"+str(i)+".csv")
+        # GreedySolver
+        collect_data_no_opt(greedy, "tsp"+str(i), "results/tsp"+str(i)+"/GreedySolver-tsp"+str(i)+".csv")
 
-        solver = RandomizedSolver(0)
-        collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/RandomizedSolver-tsp"+str(i)+".csv")
+        # RandomizedSolver
+        collect_data_no_opt(randomized, "tsp"+str(i), "results/tsp"+str(i)+"/RandomizedSolver-tsp"+str(i)+".csv")
 
-        # solver = LLMSolver("gpt-4o")
-        # collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-gpt-4o-tsp"+str(i)+".csv")
+        # LLMSolver
+        collect_data_no_opt(llm, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-gpt-4o-tsp"+str(i)+".csv")
 
-        # solver = LLMSolver("o1")
-        # collect_data_no_opt(solver, "tsp"+str(i), "results/tsp"+str(i)+"/LLMSolver-o1-tsp"+str(i)+".csv")
+        #

@@ -19,7 +19,7 @@ EOF
 This .tsp file format is based off the [TSPLIB](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/) format.
 
 ## Dataset
-The dataset used to test algorithms was randomly generated using the generate_data.py script. The tsp5, tsp10, tsp20, and tsp30 directories include 50 TSP instances each with 5, 10, 20, and 30 nodes per instances, respectively. This dataset was used for testing each algorithm to ensure replicability and validity.
+The dataset used to test algorithms was randomly generated using the generate_data.py script. The tsp5, tsp10, tsp20, and tsp30 directories include 50 TSP instances each with 5, 10, 20, and 30 nodes, respectively. This dataset was used for testing each algorithm to ensure replicability and validity.
 
 ## Results
 
@@ -27,6 +27,11 @@ The dataset used to test algorithms was randomly generated using the generate_da
 ### graph.py
 Imports or generates synthetic graphs for TSP solvers. Handles graph formats, methods, and validation.
 
+### generate_data.py
+
+### evaluate.py
+
+## Solvers
 ### exact.py
 Implements python_tsp library to solve TSP instances using dynamic programming.
 
