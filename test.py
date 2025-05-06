@@ -1,7 +1,7 @@
 from graph import EuclideanTSPGraph
 from llm_solver import LLMSolver
 from exact import DynamicProgrammingSolver
-from heuristic import NearestNeighborSolver, GreedySolver
+from heuristic import NearestNeighborSolver, GreedySolver, RandomizedSolver
 
 if __name__ == "__main__":
     graph = EuclideanTSPGraph()
@@ -11,21 +11,22 @@ if __name__ == "__main__":
 
     nearest = NearestNeighborSolver(0)
     gready = GreedySolver(0)
+    randomized = RandomizedSolver(0)
 
     esolver = DynamicProgrammingSolver()
 
     #graph.generate_random(10)
     #graph.save_to_file("test1.tsp")
-    graph.load_from_file("tsp20/tsp20-22.tsp")
+    graph.load_from_file("tsp20/tsp20-24.tsp")
     print(graph)
     print("\n\n")
 
-    print("LLM:")
-    graph.set_solution(solver.analyze(graph))
-    print(graph.solution)
-    print(graph.get_solution_cost())
-    graph.show()
-    print("\n\n")
+    # print("Exact:")
+    # graph.set_solution(esolver.analyze(graph))
+    # print(graph.solution)
+    # print(graph.get_solution_cost())
+    # graph.show()
+    # print("\n\n")
 
     # print("Nearest Neighbor:")
     # graph.set_solution(nearest.analyze(graph))
@@ -34,6 +35,13 @@ if __name__ == "__main__":
     # graph.show()
     # print("\n\n")
 
+    print("Randomized:")
+    graph.set_solution(randomized.analyze(graph))
+    print(graph.solution)
+    print(graph.get_solution_cost())
+    graph.show()
+    print("\n\n")
+
     # print("Greedy:")
     # graph.set_solution(gready.analyze(graph))
     # print(graph.solution)
@@ -41,10 +49,9 @@ if __name__ == "__main__":
     # graph.show()
     # print("\n\n")
 
-    # print("Exact:")
-    # graph.set_solution(esolver.analyze(graph))
+    # print("LLM:")
+    # graph.set_solution(solver.analyze(graph))
     # print(graph.solution)
     # print(graph.get_solution_cost())
     # graph.show()
     # print("\n\n")
-    
