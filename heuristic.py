@@ -62,15 +62,13 @@ class GreedySolver:
             adj[u].append(v)
             adj[v].append(u)
 
-        # Choose start node
         if self.start_node is not None:
             if self.start_node not in graph.nodes:
                 raise ValueError(f"Start node {self.start_node} not in graph.")
             start = self.start_node
         else:
-            start = used_edges[0][0]  # default to first edge's node
+            start = used_edges[0][0]
 
-        # Reconstruct the tour
         tour = []
         visited = set()
 
@@ -84,4 +82,18 @@ class GreedySolver:
         dfs(start)
 
         #graph.set_solution(tour)
+        return tour
+
+class RandomizedSolver:
+    def __init__(self, start_node=None):
+        self.start_node = start_node
+
+    def analyze(self, graph):
+        tour = list(graph.nodes.keys())
+        random.shuffle(tour)
+
+        if self.start_node is not None and self.start_node in tour:
+            tour.remove(self.start_node)
+            tour = [self.start_node] + tour
+            
         return tour
