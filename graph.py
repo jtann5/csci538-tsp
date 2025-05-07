@@ -203,11 +203,11 @@ class EuclideanTSPGraph:
 # Example usage
 if __name__ == "__main__":
     graph = EuclideanTSPGraph()
-    graph.add_node(1, 10, 20)
-    graph.add_node(2, 30, 40)
-    graph.add_node(3, 50, 10)
-    graph.add_node(4, 60, 60)
-    graph.add_node(5, 70, 20)
+    graph.add_node(0, 10, 20)
+    graph.add_node(1, 30, 40)
+    graph.add_node(2, 50, 10)
+    graph.add_node(3, 60, 60)
+    graph.add_node(4, 70, 20)
     print(graph)
 
     # Example of loading a TSP file
@@ -215,6 +215,6 @@ if __name__ == "__main__":
     # print(graph)
 
     # Example of setting and validating a solution
-    graph.set_solution([1, 2, 3, 4, 5])
+    graph.set_solution([0, 1, 2, 3, 4])
     print("Solution is valid:", graph.is_valid_solution())
     print("Solution cost:", graph.get_solution_cost())
