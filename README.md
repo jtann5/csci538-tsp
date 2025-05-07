@@ -67,4 +67,4 @@ EOF
 ```
 
 ### TSPRLAgent
-Implements GAT + RL to solve TSP intances
+Implements GAT + RL with pytorch to solve TSP intances.
