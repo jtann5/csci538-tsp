@@ -8,11 +8,11 @@ TYPE: TSP
 DIMENSION: 5
 EDGE_WEIGHT_TYPE: EUC_2D
 NODE_COORD_SECTION
-1 10 20
-2 30 40
-3 50 10
-4 60 60
-5 70 20
+0 10 20
+1 30 40
+2 50 10
+3 60 60
+4 70 20
 EOF
 ```
 
@@ -21,7 +21,7 @@ This .tsp file format is based off the [TSPLIB](http://comopt.ifi.uni-heidelberg
 ## Dataset
 The dataset used to test algorithms was randomly generated using the generate_data.py script. The tsp5, tsp10, tsp20, and tsp30 directories include 50 TSP instances each with 5, 10, 20, and 30 nodes, respectively. This dataset was used for testing each algorithm to ensure replicability and validity.
 
-## Explantation of Scripts
+## Explanation of Scripts
 ### graph.py
 Saves and loads .tsp files in TSPLIB format and generates synthetic graphs for TSP solvers. Handles graph format, methods, and validation.
 
